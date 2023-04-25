@@ -3,11 +3,11 @@ module github.com/notaryproject/notation
 go 1.20
 
 require (
-	github.com/docker/docker-credential-helpers v0.7.0
 	github.com/notaryproject/notation-core-go v1.0.0-rc.3
 	github.com/notaryproject/notation-go v1.0.0-rc.4
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc2
+	github.com/oras-project/oras-credentials-go v0.0.0-20230424070720-ba6b33c40845
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
@@ -17,6 +17,7 @@ require (
 
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
+	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
 	github.com/go-ldap/ldap/v3 v3.4.4 // indirect
