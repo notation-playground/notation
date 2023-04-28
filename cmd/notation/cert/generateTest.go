@@ -162,7 +162,8 @@ func generateSelfSignedCert(privateKey *rsa.PrivateKey, name string) (testhelper
 }
 
 func generateTestCleanUp(keyName string) error {
-	return config.LoadExecSaveSigningKeys(func(keys *config.SigningKeys) error {
+	var finalError []error
+	err := config.LoadExecSaveSigningKeys(func(keys *config.SigningKeys) error {
 		keySuite, err := keys.Get(keyName)
 		if err != nil {
 			return err
@@ -175,7 +176,6 @@ func generateTestCleanUp(keyName string) error {
 		}
 		// delete the certificate from trust store
 		certFile := keyName + dir.LocalCertificateExtension
-		var finalError []error
 		err = truststore.DeleteCert("ca", keyName, certFile, true)
 		if err != nil {
 			finalError = append(finalError, fmt.Errorf("cannot delete certificate from truststore/ca/%s/%s during generate-test clean up, %v", keyName, certFile, err))
@@ -203,14 +203,18 @@ func generateTestCleanUp(keyName string) error {
 		} else {
 			fmt.Printf("Successfully removed %q from notation signing key list\n", keyName)
 		}
-
-		// check if there is any error in the process of deletions
-		if len(finalError) > 0 {
-			for _, err := range finalError {
-				fmt.Fprintf(os.Stderr, "Error: %v", err)
-			}
-			return errors.New("failed to complete the generate-test clean up, manual deletion may be needed")
-		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	// check if there is any error in the process of deletions
+	if len(finalError) > 0 {
+		for _, err := range finalError {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		}
+		return errors.New("failed to complete the generate-test clean up, manual deletion may be needed")
+	}
+	return nil
 }
