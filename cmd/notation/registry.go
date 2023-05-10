@@ -161,7 +161,10 @@ func setHttpDebugLog(ctx context.Context, authClient *auth.Client) {
 	authClient.Client.Transport = trace.NewTransport(authClient.Client.Transport)
 }
 
-func getAuthClient(ctx context.Context, opts *SecureFlagOpts, ref registry.Reference) (authClient *auth.Client, plainHTTP bool, err error) {
+// getAuthClient returns an *auth.Client and a bool indicating if
+// plain HTTP should be used.
+func getAuthClient(ctx context.Context, opts *SecureFlagOpts, ref registry.Reference) (*auth.Client, bool, error) {
+	var plainHTTP bool
 	if opts.PlainHTTP {
 		plainHTTP = opts.PlainHTTP
 	} else {
@@ -174,7 +177,7 @@ func getAuthClient(ctx context.Context, opts *SecureFlagOpts, ref registry.Refer
 	}
 
 	// build authClient
-	authClient = &auth.Client{
+	authClient := &auth.Client{
 		Cache:    auth.NewCache(),
 		ClientID: "notation",
 	}
@@ -193,7 +196,7 @@ func getAuthClient(ctx context.Context, opts *SecureFlagOpts, ref registry.Refer
 		}
 		authClient.Credential = credentials.Credential(credsStore)
 	}
-	return
+	return authClient, plainHTTP, nil
 }
 
 func pingReferrersAPI(ctx context.Context, remoteRepo *remote.Repository) error {
