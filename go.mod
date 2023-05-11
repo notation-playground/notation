@@ -7,12 +7,12 @@ require (
 	github.com/notaryproject/notation-go v1.0.0-rc.4
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc2
-	github.com/oras-project/oras-credentials-go v0.0.0-20230424070720-ba6b33c40845
+	github.com/oras-project/oras-credentials-go v0.1.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/term v0.7.0
-	oras.land/oras-go/v2 v2.0.2
+	oras.land/oras-go/v2 v2.1.0
 )
 
 require (

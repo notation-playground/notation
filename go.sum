@@ -27,6 +27,8 @@ github.com/opencontainers/image-spec v1.1.0-rc2 h1:2zx/Stx4Wc5pIPDvIxHXvXtQFW/7X
 github.com/opencontainers/image-spec v1.1.0-rc2/go.mod h1:3OVijpioIKYWTqjiG0zfF6wvoJ4fAXGbjdZuI2NgsRQ=
 github.com/oras-project/oras-credentials-go v0.0.0-20230424070720-ba6b33c40845 h1:lE/TKx3cblnIRMazUdXgHmoM8TXs4fZqv3EXvEF3A2I=
 github.com/oras-project/oras-credentials-go v0.0.0-20230424070720-ba6b33c40845/go.mod h1:yww9XqMCWjNh4Z7S5Ek7KeV9j/yhbyVxgSinGdNNwEg=
+github.com/oras-project/oras-credentials-go v0.1.0 h1:XaGxQD4qK8jxOGSNqrPlh/lKlVSL/PBH89WraYjyZkE=
+github.com/oras-project/oras-credentials-go v0.1.0/go.mod h1:wxHUtRSULM8DVTGgc8DFtIKXDZr2JLD/48WYPqvKoJs=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
@@ -69,3 +71,5 @@ gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 oras.land/oras-go/v2 v2.0.2 h1:3aSQdJ7EUC0ft2e9PjJB9Jzastz5ojPA4LzZ3Q4YbUc=
 oras.land/oras-go/v2 v2.0.2/go.mod h1:PWnWc/Kyyg7wUTUsDHshrsJkzuxXzreeMd6NrfdnFSo=
+oras.land/oras-go/v2 v2.1.0 h1:1nS8BIeEP6CBVQifwxrsth2bkuD+cYfjp7Hf7smUcS8=
+oras.land/oras-go/v2 v2.1.0/go.mod h1:v5ZSAPIMEJYnZjZ6rTGPAyaonH+rCFmbE95IAzCTeGU=
