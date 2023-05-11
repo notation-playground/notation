@@ -105,7 +105,8 @@ func runLogin(ctx context.Context, opts *loginOpts) error {
 		if savedCred, err := credsStore.Get(ctx, registryName); err == nil && savedCred == cred {
 			// there is an existing identical credential, ignore saving error
 			fmt.Fprintf(os.Stderr, "Warning: The credentials store is not set up. It is recommended to configure the credentials store to securely store your credentials. See %s.\n", urlDocHowToAuthenticate)
-			fmt.Printf("\nAuthenticating with existing credentials...\n")
+			fmt.Println()
+			fmt.Println("Authenticating with existing credentials...")
 		} else {
 			return fmt.Errorf("failed to log in to %s: the credential could not be saved because a credentials store is required to securely store the password. See %s",
 				registryName, urlDocHowToAuthenticate)

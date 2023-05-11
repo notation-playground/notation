@@ -46,7 +46,7 @@ func runLogout(ctx context.Context, opts *logoutOpts) error {
 		return fmt.Errorf("failed to get credentials store: %v", err)
 	}
 	if err := credentials.Logout(ctx, credsStore, opts.server); err != nil {
-		return fmt.Errorf("failed to logout of %s: %v", opts.server, err)
+		return fmt.Errorf("failed to log out of %s: %v", opts.server, err)
 	}
 
 	fmt.Println("Logout Succeeded")
