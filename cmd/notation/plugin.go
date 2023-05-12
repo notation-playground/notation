@@ -26,6 +26,7 @@ func pluginCommand() *cobra.Command {
 	}
 	cmd.AddCommand(pluginListCommand())
 	cmd.AddCommand(pluginInstallCommand(nil))
+	cmd.AddCommand(pluginUninstallCommand(nil))
 	return cmd
 }
 
@@ -230,4 +231,42 @@ func findPluginExecutable(path string) (string, io.ReadCloser, error) {
 			}, nil
 		}
 	}
+}
+
+type pluginUninstallOpts struct {
+	name string
+}
+
+func pluginUninstallCommand(opts *pluginUninstallOpts) *cobra.Command {
+	if opts == nil {
+		opts = &pluginUninstallOpts{}
+	}
+	command := &cobra.Command{
+		Use:     "uninstall [flags]",
+		Aliases: []string{"remove"},
+		Short:   "Uninstall plugin",
+		Long: `Uninstall plugin
+
+Example - Uninstall Notation plugin
+  notation plugin uninstall example-plugin
+`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.name = args[0]
+			return uninstallPlugin(cmd, opts)
+		},
+	}
+	return command
+}
+
+func uninstallPlugin(command *cobra.Command, opts *pluginUninstallOpts) error {
+	pluginDir, err := dir.PluginFS().SysPath(opts.name)
+	if err != nil {
+		return err
+	}
+	if err := os.RemoveAll(pluginDir); err != nil {
+		return err
+	}
+	fmt.Println("Uninstalled plugin:", opts.name)
+	return nil
 }
