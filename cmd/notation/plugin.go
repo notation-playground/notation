@@ -1,13 +1,21 @@
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/notaryproject/notation-go/dir"
 	"github.com/notaryproject/notation-go/plugin"
 	"github.com/notaryproject/notation-go/plugin/proto"
+	"github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +25,7 @@ func pluginCommand() *cobra.Command {
 		Short: "Manage plugins",
 	}
 	cmd.AddCommand(pluginListCommand())
+	cmd.AddCommand(pluginInstallCommand(nil))
 	return cmd
 }
 
@@ -61,4 +70,164 @@ func listPlugins(command *cobra.Command) error {
 			n, metaData.Description, metaData.Version, metaData.Capabilities, err)
 	}
 	return tw.Flush()
+}
+
+type pluginInstallOpts struct {
+	url      string
+	checksum string
+}
+
+func pluginInstallCommand(opts *pluginInstallOpts) *cobra.Command {
+	if opts == nil {
+		opts = &pluginInstallOpts{}
+	}
+	command := &cobra.Command{
+		Use:     "install [flags]",
+		Aliases: []string{"add"},
+		Short:   "Install plugin",
+		Long: `Install plugin
+
+Example - Install Notation plugin from a remote URL:
+  notation plugin install --checksum sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef https://example.com/notation-plugin-example.tar.gz
+`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.url = args[0]
+			return installPlugin(cmd, opts)
+		},
+	}
+	command.Flags().StringVar(&opts.checksum, "checksum", "", "checksum of the plugin")
+	return command
+}
+
+// TODO: should be implemented in notation-go
+func installPlugin(command *cobra.Command, opts *pluginInstallOpts) error {
+	// create a temp directory
+	tempDir, err := os.MkdirTemp("", "notation-plugin-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tempDir)
+
+	// create digester
+	checksum := opts.checksum
+	if !strings.Contains(checksum, ":") {
+		checksum = "sha256:" + checksum
+	}
+	packageDigest, err := digest.Parse(checksum)
+	if err != nil {
+		return err
+	}
+
+	// download the plugin
+	// TODO: should limit the size of the plugin
+	// TODO: should configure the http client
+	srcPath := filepath.Join(tempDir, "plugin.tar.gz")
+	if err := downloadFile(opts.url, packageDigest, srcPath); err != nil {
+		return err
+	}
+
+	// install the plugin
+	// TODO: should support other plugin types
+	pluginFilename, pluginFile, err := findPluginExecutable(srcPath)
+	if err != nil {
+		return err
+	}
+	defer pluginFile.Close()
+	pluginName := strings.TrimSuffix(pluginFilename, filepath.Ext(pluginFilename))
+	pluginName = strings.TrimPrefix(pluginName, "notation-")
+	pluginDir, err := dir.PluginFS().SysPath(pluginName)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(pluginDir, 0755); err != nil {
+		return err
+	}
+
+	// TODO: prompt to overwrite the existing plugin
+	destPath := filepath.Join(pluginDir, pluginFilename)
+	destFile, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close() // ensure close
+	if err := destFile.Chmod(0755); err != nil {
+		return err
+	}
+	if _, err := io.Copy(destFile, pluginFile); err != nil {
+		return err
+	}
+	return destFile.Close()
+}
+
+// downloadFile downloads a file from url and verify the checksum
+// TODO: add context to cancel the download
+func downloadFile(url string, checksum digest.Digest, dest string) error {
+	verifier := checksum.Verifier()
+
+	// download the plugin
+	// TODO: should limit the size of the plugin
+	// TODO: should configure the http client
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	file, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer file.Close() // failsafe close
+	writer := io.MultiWriter(file, verifier)
+	if _, err := io.Copy(writer, resp.Body); err != nil {
+		return err
+	}
+
+	// ensure content is written to the file
+	if err := file.Close(); err != nil {
+		return err
+	}
+
+	// verify the checksum
+	if !verifier.Verified() {
+		return errors.New("checksum mismatch")
+	}
+
+	return nil
+}
+
+func findPluginExecutable(path string) (string, io.ReadCloser, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", nil, err
+	}
+
+	gr, err := gzip.NewReader(file)
+	if err != nil {
+		file.Close()
+		return "", nil, err
+	}
+	tr := tar.NewReader(gr)
+	for {
+		header, err := tr.Next()
+		if err != nil {
+			file.Close()
+			if err == io.EOF {
+				return "", nil, errors.New("executable not found")
+			}
+			return "", nil, err
+		}
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+		if strings.HasPrefix(header.Name, "notation-") {
+			return header.Name, struct {
+				io.Reader
+				io.Closer
+			}{
+				Reader: tr,
+				Closer: file,
+			}, nil
+		}
+	}
 }
