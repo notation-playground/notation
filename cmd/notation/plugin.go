@@ -1,23 +1,123 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"path"
 	"text/tabwriter"
 
 	"github.com/notaryproject/notation-go/dir"
 	"github.com/notaryproject/notation-go/plugin"
 	"github.com/notaryproject/notation-go/plugin/proto"
+	"github.com/notaryproject/notation/internal/cmd"
+	"github.com/notaryproject/notation/internal/osutil"
+	plugininternal "github.com/notaryproject/notation/internal/plugin"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
+	"oras.land/oras-go/v2/content"
+	"oras.land/oras-go/v2/registry"
 )
+
+type pluginOpts struct {
+	cmd.LoggingFlagOpts
+	SecureFlagOpts
+	reference  string
+	pluginName string
+}
 
 func pluginCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "plugin",
 		Short: "Manage plugins",
 	}
+	cmd.AddCommand(pluginInstallCommand(nil))
 	cmd.AddCommand(pluginListCommand())
 	return cmd
+}
+
+func pluginInstallCommand(opts *pluginOpts) *cobra.Command {
+	if opts == nil {
+		opts = &pluginOpts{}
+	}
+	command := &cobra.Command{
+		Use:     "install [flags] <plugin reference>",
+		Aliases: []string{"import", "add"},
+		Short:   "Install a plugin",
+		Long: `Install a plugin
+		Example - Install a Notation plugin:
+			notation plugin install <plugin reference in remote registry>
+`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return errors.New("missing reference")
+			}
+			opts.reference = args[0]
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return installPlugin(cmd, opts)
+		},
+	}
+	opts.LoggingFlagOpts.ApplyFlags(command.Flags())
+	opts.SecureFlagOpts.ApplyFlags(command.Flags())
+	command.Flags().StringVar(&opts.pluginName, "name", "", "name of the plugin to be installed")
+	command.MarkFlagRequired("plugin")
+	return command
+}
+
+func installPlugin(command *cobra.Command, opts *pluginOpts) error {
+	// set log level
+	ctx := opts.LoggingFlagOpts.SetLoggerLevel(command.Context())
+
+	reference := opts.reference
+	ref, err := registry.ParseReference(reference)
+	if err != nil {
+		return err
+	}
+	// generate remote repository
+	remoteRepo, err := getRepositoryClient(ctx, &opts.SecureFlagOpts, ref)
+	if err != nil {
+		return err
+	}
+	// read the reference manifest
+	referenceManifestDescriptor, err := remoteRepo.Resolve(ctx, ref.Reference)
+	if err != nil {
+		return err
+	}
+	manifestJSON, err := content.FetchAll(ctx, remoteRepo.Manifests(), referenceManifestDescriptor)
+	if err != nil {
+		return err
+	}
+	var pluginManifest ocispec.Manifest
+	if err := json.Unmarshal(manifestJSON, &pluginManifest); err != nil {
+		return err
+	}
+	pluginBlobDesc := pluginManifest.Layers[0]
+	pluginBlob, err := content.FetchAll(ctx, remoteRepo.Blobs(), pluginBlobDesc)
+	if err != nil {
+		return err
+	}
+
+	// install the plugin
+	pluginName := opts.pluginName
+	pluginFile := path.Join(pluginName, plugininternal.BinName(pluginName))
+	pluginPath, err := dir.PluginFS().SysPath(pluginFile)
+	if err != nil {
+		return err
+	}
+	err = osutil.WriteFile(pluginPath, pluginBlob)
+	if err != nil {
+		return err
+	}
+
+	// mark the plugin as executable
+	err = os.Chmod(pluginPath, 0700)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func pluginListCommand() *cobra.Command {
