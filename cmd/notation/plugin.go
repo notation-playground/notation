@@ -47,7 +47,7 @@ func pluginInstallCommand(opts *pluginOpts) *cobra.Command {
 		Short:   "Install a plugin",
 		Long: `Install a plugin
 		Example - Install a Notation plugin:
-			notation plugin install <plugin reference in remote registry>
+			notation plugin install <--name pluginName> <plugin reference in remote registry>
 `,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
