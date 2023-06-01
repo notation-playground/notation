@@ -63,7 +63,7 @@ func pluginInstallCommand(opts *pluginOpts) *cobra.Command {
 	opts.LoggingFlagOpts.ApplyFlags(command.Flags())
 	opts.SecureFlagOpts.ApplyFlags(command.Flags())
 	command.Flags().StringVar(&opts.pluginName, "name", "", "name of the plugin to be installed")
-	command.MarkFlagRequired("plugin")
+	command.MarkFlagRequired("name")
 	return command
 }
 
@@ -116,6 +116,22 @@ func installPlugin(command *cobra.Command, opts *pluginOpts) error {
 	err = os.Chmod(pluginPath, 0700)
 	if err != nil {
 		return err
+	}
+
+	// validate the installed plugin
+	pluginInstalled, err := plugin.NewCLIPlugin(ctx, pluginName, pluginPath)
+	if err != nil {
+		if err := os.Remove(pluginPath); err != nil {
+			return fmt.Errorf("installed plugin failed validation and cannot be removed, %v", err)
+		}
+		return fmt.Errorf("plugin failed validation, %v", err)
+	}
+	_, err = pluginInstalled.GetMetadata(ctx, &proto.GetMetadataRequest{})
+	if err != nil {
+		if err := os.Remove(pluginPath); err != nil {
+			return fmt.Errorf("installed plugin failed to get metadata and cannot be removed, %v", err)
+		}
+		return fmt.Errorf("plugin failed to get metadata, %v", err)
 	}
 	return nil
 }
