@@ -82,7 +82,7 @@ func pluginInstallCommand(opts *pluginOpts) *cobra.Command {
 
 func installPlugin(command *cobra.Command, opts *pluginOpts) error {
 	// set log level
-	ctx := opts.LoggingFlagOpts.SetLoggerLevel(command.Context())
+	ctx := opts.LoggingFlagOpts.InitializeLogger(command.Context())
 
 	reference := opts.reference
 	ref, err := registry.ParseReference(reference)
